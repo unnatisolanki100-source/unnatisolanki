@@ -16,6 +16,7 @@ const Contact = forwardRef<ContactRef, {}>((props, ref) => {
   const [copiedPhone, setCopiedPhone] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const messageInputRef = useRef<HTMLTextAreaElement>(null);
   const formSectionRef = useRef<HTMLDivElement>(null);
@@ -50,21 +51,45 @@ const Contact = forwardRef<ContactRef, {}>((props, ref) => {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email || !message) return;
 
     setIsSubmitting(true);
-    // Simulate real network submission with elegant loader
-    setTimeout(() => {
+    setErrorMessage(null);
+
+    try {
+      const response = await fetch("https://formsubmit.co/ajax/unnatisolanki400@gmail.com", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          _subject: subject || "New Portfolio Message",
+          message
+        })
+      });
+
+      const data = await response.json();
+      if (response.ok && data.success === "true") {
+        setIsSuccess(true);
+        // Reset form fields
+        setName("");
+        setEmail("");
+        setSubject("");
+        setMessage("");
+      } else {
+        throw new Error(data.message || "Failed to transmit message. Please try again.");
+      }
+    } catch (err: any) {
+      console.error(err);
+      setErrorMessage(err.message || "Could not deliver message. Please contact via email directly or try again.");
+    } finally {
       setIsSubmitting(false);
-      setIsSuccess(true);
-      // Reset form fields
-      setName("");
-      setEmail("");
-      setSubject("");
-      setMessage("");
-    }, 1500);
+    }
   };
 
   return (
@@ -204,6 +229,12 @@ const Contact = forwardRef<ContactRef, {}>((props, ref) => {
               </div>
             ) : (
               <form id="contact-message-form" onSubmit={handleSubmit} className="space-y-4">
+                {errorMessage && (
+                  <div className="p-3 border border-red-900/50 bg-red-950/20 text-red-400 text-xs font-sans rounded-[12px] flex items-center gap-2">
+                    <AlertCircle size={14} className="shrink-0" />
+                    <span>{errorMessage}</span>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Name */}
                   <div className="space-y-1">
